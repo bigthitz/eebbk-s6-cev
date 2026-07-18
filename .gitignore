@@ -1,0 +1,13 @@
+# Built binaries
+ghostlock_trigger
+ghostlock_exploit
+*.o
+
+# NDK (if someone commits it)
+/android-ndk/
+/android-ndk-*/
+
+# Temp files
+kallsyms_device.txt
+*.log
+*.bak
