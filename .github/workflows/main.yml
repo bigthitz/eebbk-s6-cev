@@ -1,0 +1,56 @@
+name: Build GhostLock Exploit
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - '**.c'
+      - '**.h'
+      - 'Makefile'
+      - '.github/workflows/*.yml'
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build for aarch64 (Android 13+)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup NDK
+        uses: android-actions/setup-android@v3
+        with:
+          api-level: 33
+          ndk-version: '27'
+          sdk-version: 'platforms;android-33'
+
+      - name: Build
+        run: |
+          export NDK_HOME="$ANDROID_HOME/ndk/27.0.12077973"
+          export PATH="$NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH"
+          
+          echo "NDK_HOME=$NDK_HOME"
+          echo "PATH=$PATH"
+          which clang
+          clang --version
+          
+          make all NDK_ROOT="$NDK_HOME" CC="aarch64-linux-android33-clang"
+
+      - name: List artifacts
+        run: |
+          ls -lh ghostlock_* 2>/dev/null || echo "No binaries found"
+          file ghostlock_* 2>/dev/null || true
+
+      - name: Upload binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: ghostlock-binaries
+          path: |
+            ghostlock_trigger
+            ghostlock_exploit
+          if-no-files-found: warn
+          retention-days: 30
