@@ -28,17 +28,40 @@ jobs:
           ndk-version: '27'
           sdk-version: 'platforms;android-33'
 
-      - name: Build
+      - name: Find NDK tools
         run: |
-          export NDK_HOME="$ANDROID_HOME/ndk/27.0.12077973"
-          export PATH="$NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH"
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          ls -la "$ANDROID_HOME/ndk/"
+          ls -la "$ANDROID_HOME/ndk/"*/toolchains/llvm/prebuilt/linux-x86_64/bin/ | grep clang
+
+      - name: Build trigger
+        run: |
+          NDK_PATH=$(find "$ANDROID_HOME/ndk" -maxdepth 1 -type d | sort -V | tail -1)
+          echo "Using NDK: $NDK_PATH"
           
-          echo "NDK_HOME=$NDK_HOME"
-          echo "PATH=$PATH"
-          which clang
-          clang --version
+          CC_BIN="$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android33-clang"
           
-          make all NDK_ROOT="$NDK_HOME" CC="aarch64-linux-android33-clang"
+          if [ ! -f "$CC_BIN" ]; then
+            echo "Trying to find any aarch64 android clang..."
+            CC_BIN=$(find "$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/bin/" -name "aarch64*clang" | head -1)
+          fi
+          
+          echo "CC = $CC_BIN"
+          ls -la "$CC_BIN"
+          "$CC_BIN" --version | head -1
+          
+          make trigger CC="$CC_BIN"
+
+      - name: Build exploit
+        run: |
+          NDK_PATH=$(find "$ANDROID_HOME/ndk" -maxdepth 1 -type d | sort -V | tail -1)
+          CC_BIN="$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android33-clang"
+          
+          if [ ! -f "$CC_BIN" ]; then
+            CC_BIN=$(find "$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/bin/" -name "aarch64*clang" | head -1)
+          fi
+          
+          make exploit CC="$CC_BIN"
 
       - name: List artifacts
         run: |
